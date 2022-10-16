@@ -1,18 +1,5 @@
 A simple client-server sockets package that uses the Socket and ServerSocket classes.
 
-## Getting started
-
-Add the dependency:
-```yaml
-dependencies:
-  sockets: ^0.0.1
-```
-
-Import the package:
-```dart
-import 'package:sockets/sockets.dart';
-```
-
 ## Usage
 
 Start the server on an address you want:
