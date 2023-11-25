@@ -77,6 +77,7 @@ class Server {
             if (onClientError != null) onClientError(client, error.toString());
             // Close the client connection
             client.close();
+            _clients.remove(client);
           },
           onDone: () {
             // The client has closed the connection
@@ -84,6 +85,7 @@ class Server {
             if (onClientLeft != null) onClientLeft(doneClient);
             // Make sure the client closed the connection
             client.close();
+            _clients.remove(client);
           },
         );
       },
