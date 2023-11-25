@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:client_server_sockets/client_server_sockets.dart';
-import 'package:client_server_sockets/src/payload.dart';
 
 void main(List<String> args) {
   if (args.isEmpty) {
