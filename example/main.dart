@@ -1,123 +1,104 @@
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:args/args.dart';
 import 'package:client_server_sockets/client_server_sockets.dart';
+import 'package:client_server_sockets/src/payload.dart';
 
-Future<void> main(List<String> args) async {
-  late Server server;
-  late Client client;
-
-  String serverWord = "server";
-  String clientWord = "client";
-  String addressWord = "address";
-
-  var parser = ArgParser()
-    ..addFlag(
-      serverWord,
-      abbr: serverWord.substring(0, 1),
-      help: "Start the program as a server on the specified [address] option",
-      negatable: false,
-    )
-    ..addFlag(
-      clientWord,
-      abbr: clientWord.substring(0, 1),
-      help:
-          "Start the program as a client and connect to the server using the specified [address] option",
-      negatable: false,
-    )
-    ..addOption(
-      addressWord,
-      abbr: addressWord.substring(0, 1),
-      help: "The IP address on which the program will run",
-      valueHelp: "192.168.1.1",
-    );
-
-  final results = parser.parse(args);
-
-  if (results.arguments.isEmpty) {
-    print(parser.usage);
-  } else if (results.wasParsed(serverWord) && results.wasParsed(addressWord)) {
-
-    server = Server();
-    final started = await server.startServer(results[addressWord]);
-    if (!started) return;
-
-    // Prevents a null exception
-    server.onSocketDone = (port) {};
-
-    server.stream.listen((event) {
-      Payload payload = Payload.fromJson(event);
-      if (payload.port != server.port) {
-        server.sendTo(payload.port, payload.toJson());
-      } else {
-        print(payload.data);
-      }
-    });
-
-  } else if (results.wasParsed(clientWord) && results.wasParsed(addressWord)) {
-
-    client = Client();
-    final connected = await client.connect(results[addressWord]);
-    if (!connected) return;
-
-    // Prevents a null exception
-    client.onSocketDone = () {};
-
-    client.stream.listen((event) {
-      Payload payload = Payload.fromJson(event);
-      if (payload.port == client.port) {
-        print(payload.data);
-      }
-    });
-
-    String destinationPort = "";
-    String message = "";
-
-    do {
-      print("Enter destination port: ");
-      destinationPort = stdin.readLineSync() ?? "";
-    } while (destinationPort.isEmpty);
-
-    do {
-      print("Enter message to send: ");
-      message = stdin.readLineSync() ?? "";
-    } while (message.isEmpty);
-
-    Payload payload = Payload(
-      port: int.parse(destinationPort),
-      data: message,
-    );
-
-    client.send(payload.toJson());
+void main(List<String> args) {
+  if (args.isEmpty) {
+    print("No args passed");
+    print("Usage:");
+    print("Server: dart example/main.dart s");
+    print("Client: dart example/main.dart c");
+    print("Client with prompt: dart example/main.dart cp");
+    return;
   }
+  if (args.first == "s") _server();
+  if (args.first == "c") _client();
+  if (args.first == "cp") _client(true);
 }
 
-class Payload {
-  final int port;
-  final String data;
+void _server() async {
+  final started = await Server.instance.start(
+    onServerError: (error) {
+      print("Server error: $error");
+    },
+    onNewClient: (client) {
+      print("New client: ${client.remotePort}");
+    },
+    onClientData: (client, data) {
+      Payload payload = Payload.fromJson(data);
+      print("Message from client ${client.remotePort}: $payload");
+      Server.instance.sendTo(payload.port, payload.data);
+    },
+    onClientError: (client, error) {
+      print("Error from client ${client.remotePort}: $error");
+    },
+    onClientLeft: (client) {
+      print("Client ${client.remotePort} left");
+    },
+  );
 
-  Payload({
-    required this.port,
-    required this.data,
+  if (!started) {
+    print("Couldn't start server");
+    return;
+  }
+
+  print("server running on ${Server.instance.port}");
+
+  Future.delayed(Duration(seconds: 30), () {
+    String? message;
+    do {
+      print("Enter message to broadcast:");
+      message = stdin.readLineSync();
+    } while (message == null || message.isEmpty);
+
+    Server.instance.broadcast(message);
   });
+}
 
-  Map<String, dynamic> toMap() {
-    return {
-      'port': port,
-      'data': data,
-    };
+void _client([bool prompt = false]) async {
+  final connected = await Client.instance.connect(
+    "192.168.1.10",
+    onClientError: (error) {
+      print("Client error: $error");
+    },
+    onServerData: (data) {
+      print("Message from sever: $data");
+    },
+    onServerError: (error) {
+      print("Error from server: $error");
+    },
+    onServerStopped: () {
+      print("Server stopped");
+    },
+  );
+
+  if (!connected) {
+    print("Couldn't connect to server");
+    return;
   }
 
-  factory Payload.fromMap(Map<String, dynamic> map) {
-    return Payload(
-      port: map['port']?.toInt() ?? 0,
-      data: map['data'] ?? '',
-    );
-  }
+  print("Connected to ${Client.instance.remotePort} from ${Client.instance.port}");
 
-  String toJson() => json.encode(toMap());
+  if (prompt) _prompts();
+}
 
-  factory Payload.fromJson(String source) =>
-      Payload.fromMap(json.decode(source));
+void _prompts() {
+  Future.delayed(Duration(seconds: 10), () {
+    String? port;
+    do {
+      print("Enter client port you wish to send a message to:");
+      port = stdin.readLineSync();
+    } while (port == null || port.isEmpty);
+
+    String? message;
+    do {
+      print("Enter message to send to client 2:");
+      message = stdin.readLineSync();
+    } while (message == null || message.isEmpty);
+
+    Payload payload = Payload(port: int.parse(port), data: message);
+
+    Client.instance.send(payload.toJson());
+  });
 }

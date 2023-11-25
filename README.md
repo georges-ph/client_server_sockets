@@ -2,43 +2,24 @@ A simple client-server sockets package that uses the Socket and ServerSocket cla
 
 ## Usage
 
-Start the server on an address you want:
+Start the server using:
 ```dart
-Server server = Server();
-await server.startServer("192.168.1.2");
+Server.instance.start();
 ```
 
-Add the callback function to prevent it from throwing a null exception:
+Connect the client to the server using its address:
 ```dart
-server.onSocketDone = (port) {
-    // Logic for when socket is closed
-};
-```
-
-Listen to the response stream:
-```dart
-server.stream.listen(print);
-```
-
-Now initialize the client and connect to the server:
-```dart
-Client client = Client();
-await client.connect("192.168.1.2");
-```
-
-Add the callback function to prevent it from throwing a null exception:
-```dart
-client.onSocketDone = () {
-  // Logic for when socket is closed
-};
-```
-
-Listen to the response stream:
-```dart
-client.stream.listen(print);
+Client.instance.connect("192.168.1.10");
 ```
 
 To send a message to the server, use the `send()` function like this:
 ```dart
-client.send("Hello World!");
+Client.instance.send("Hello World!");
 ```
+
+To broadcast a message to all clients, use the `broadcast()` function like this:
+```dart
+Server.instance.broadcast("Broadcasted message");
+```
+
+To send a message from a client to another, you can use the `Payload` class to help you with that along with the `sendTo()` function in the server. Check the [example](https://pub.dev/packages/client_server_sockets/example) for more info.

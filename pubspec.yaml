@@ -1,16 +1,15 @@
 name: client_server_sockets
 description: A simple client-server sockets package that uses the Socket and ServerSocket classes.
-version: 0.0.2
-# homepage: https://www.example.com
+version: 1.0.0
 repository: https://github.com/georges-ph/client_server_sockets
 issue_tracker: https://github.com/georges-ph/client_server_sockets/issues
 
 environment:
-  sdk: '>=2.18.2 <3.0.0'
+  sdk: ^3.2.0
 
 dependencies:
-  args: ^2.3.1
+  # path: ^1.8.0
 
 dev_dependencies:
-  lints: ^2.0.0
-  test: ^1.16.0
+  lints: ^2.1.0
+  test: ^1.24.0

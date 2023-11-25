@@ -1,75 +1,85 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:client_server_sockets/src/configs.dart';
+
 class Client {
-  late Socket _socket;
-  late final StreamController<dynamic> _streamController;
+  /// Client singleton; single instance.
+  // Use named constructor to create the singleton
+  static final Client instance = Client._internal();
+  Client._internal();
 
-  /// Callback function that returns the port number of the closed socket.
-  Function()? onSocketDone;
+  Socket? _client;
 
-  /// The port used by the server.
-  int get port => _socket.port;
+  /// Get the [port] on which the client is connected from
+  int? get port => _client?.port;
 
-  /// The stream used to listen to the server events.
-  Stream<dynamic> get stream => _streamController.stream;
+  /// Get the [remotePort] on which the client socket is connected to.
+  int? get remotePort => _client?.remotePort;
 
-  /// Connect to the server on the given address and port.
+  /// Connects to the server on the specified address and port.
+  /// If [port] is not specified, `kPort` is used instead.
   ///
-  /// If [port] is not specified, `8080` will be used.
+  /// Errors thrown by the client are passed in [onClientError].
   ///
-  /// [sourceAddress] and [sourcePort] can be used to specify a local address and port.
-  /// If [sourcePort] is not specified, a port will be chosen.
-  Future<bool> connect(String address,
-      {int? port, dynamic sourceAddress, int? sourcePort}) async {
-    _streamController = StreamController<dynamic>.broadcast();
-
+  /// Data received by the server is passed to [onServerData].
+  ///
+  /// Errors by the server are passed to [onServerError].
+  ///
+  /// Use [onServerStopped] to know when the server stopped.
+  ///
+  /// Returns `true` if the connection is successful and `false` otherwise.
+  Future<bool> connect(
+    String address, {
+    int? port,
+    void Function(String error)? onClientError,
+    void Function(String data)? onServerData,
+    void Function(String error)? onServerError,
+    void Function()? onServerStopped,
+  }) async {
+    // Try to connect to the server
     try {
-      _socket = await Socket.connect(
-        address,
-        port ?? 8080,
-        sourceAddress: sourceAddress,
-        sourcePort: sourcePort ?? 0,
-      );
+      _client = await Socket.connect(address, port ?? kPport);
     } catch (e) {
-      _streamController.sink.addError(e);
+      // Client couldn't connect to server, return false
+      // and pass the error message to the callback
+      if (onClientError != null) onClientError(e.toString());
       return false;
     }
 
-    print(
-        "Connected to ${_socket.remoteAddress.address}:${_socket.remotePort} from ${_socket.address.address}:${_socket.port}");
-
-    _socket.listen(
+    // Listen for the data received from the server
+    _client?.listen(
       (data) {
+        // The server sent data
+        // Data received by server
         final response = String.fromCharCodes(data);
-        _streamController.sink.add(response);
+        // Pass the response to the callback
+        if (onServerData != null) onServerData(response);
       },
       onError: (error) {
-        print(
-            "Server ${_socket.remoteAddress.address}:${_socket.remotePort} got an error");
-        _streamController.sink.addError(error);
-        _socket.destroy();
+        // The sever had errors
+        // Pass the error to the callback
+        if (onServerError != null) onServerError(error.toString());
+        // Make sure the connection is closed
+        _client?.destroy();
       },
       onDone: () {
-        print(
-            // "Server ${_socket.remoteAddress.address}:${_socket.remotePort} is done";
-            "Server is done");
-        onSocketDone!();
-        _socket.destroy();
+        if (onServerStopped != null) onServerStopped();
+        // Make sure the connection is closed
+        _client?.destroy();
       },
     );
 
     return true;
   }
 
-  /// Disconnects from the server.
-  Future<void> disconnect() async {
-    _socket.destroy();
-    await _streamController.close();
+  /// Disconnects from the server
+  void disconnect() {
+    _client?.destroy();
   }
 
   /// Sends a message to the server.
   void send(String message) {
-    _socket.write(message);
+    _client?.write(message);
   }
 }
