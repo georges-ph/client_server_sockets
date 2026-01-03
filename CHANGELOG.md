@@ -1,3 +1,13 @@
+## 1.1.0
+
+**Breaking changes**
+
+- Replaced callback functions with stream events
+- Changed from `String` to `Uint8List` when working data
+- Methods throw a `SocketException` when used in an invalid state
+- Exposed a `clients` getter in `Server` class to access the connected clients
+- Replaced the default server port with a random port chosen by the system
+
 ## 1.0.1
 
 - Exported `payload` file to the package

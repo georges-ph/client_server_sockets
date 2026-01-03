@@ -1,13 +1,13 @@
+import 'dart:async';
 import 'dart:io';
-
-import 'package:client_server_sockets/src/configs.dart';
+import 'dart:typed_data';
 
 class Server {
   /// Server singleton; single instance.
-  // Use named constructor to create the singleton
   static final Server instance = Server._internal();
   Server._internal();
 
+  // The server socket
   ServerSocket? _server;
 
   /// Get the [port] on which the server socket is listening on.
@@ -16,112 +16,130 @@ class Server {
   // List of sockets to keep track of them
   final List<Socket> _clients = [];
 
+  /// Get the list of connected clients' sockets.
+  List<Socket> get clients => List.unmodifiable(_clients);
+
+  // Stream controllers for events
+  final _onServerError = StreamController<String>.broadcast();
+  final _onNewClient = StreamController<Socket>.broadcast();
+  final _onClientData = StreamController<({Socket client, Uint8List data})>.broadcast();
+  final _onClientError = StreamController<({Socket client, String error})>.broadcast();
+  final _onClientLeft = StreamController<({Socket client})>.broadcast();
+
+  /// Errors thrown by the server will use this stream.
+  Stream<String> get onServerError => _onServerError.stream;
+
+  /// When a new client connects to the server, its socket will be passed to this stream.
+  Stream<Socket> get onNewClient => _onNewClient.stream;
+
+  /// Data received by a client is passed to this stream.
+  Stream<({Socket client, Uint8List data})> get onClientData => _onClientData.stream;
+
+  /// Errors by a client are passed to this stream.
+  Stream<({Socket client, String error})> get onClientError => _onClientError.stream;
+
+  /// To know when a client closed the connection, use this stream.
+  Stream<({Socket client})> get onClientLeft => _onClientLeft.stream;
+
   /// Starts the server socket on the local address.
   ///
-  /// If [port] is not specified, `kPort` is used instead.
+  /// If [port] is not specified, a random port will be chosen.
   ///
-  /// Errors thrown by the server are passed in [onServerError].
-  ///
-  /// When a new client connects to the server, use [onNewClient] to get the client socket.
-  ///
-  /// Data received by a client is passed to [onClientData].
-  ///
-  /// Errors by a client are passed to [onClientError].
-  ///
-  /// Use [onClientLeft] to know when a client closed the connection.
-  ///
-  /// Returns `true` if the server starts successfully and `false` otherwise.
-  Future<bool> start({
-    int? port,
-    void Function(String error)? onServerError,
-    void Function(Socket client)? onNewClient,
-    void Function(Socket client, String data)? onClientData,
-    void Function(Socket client, String error)? onClientError,
-    void Function(Socket client)? onClientLeft,
-  }) async {
-    // Try to start the server socket
-    try {
-      _server = await ServerSocket.bind("0.0.0.0", port ?? kPport);
-    } catch (e) {
-      // Server could not be started, return false
-      // and pass the error message to the callback
-      if (onServerError != null) onServerError(e.toString());
-      return false;
+  /// Throws a [SocketException] if the server is already running.
+  Future<void> start([int? port]) async {
+    // Check if the server is already running
+    if (_server != null) {
+      throw SocketException("Server is already running", port: _server!.port);
     }
 
-    // Listen for incoming connections from clients
-    _server?.listen(
-      (client) {
-        // Save current socket to use it in [onDone]
-        Socket doneClient = client;
+    // Try to start the server socket
+    try {
+      _server = await ServerSocket.bind(InternetAddress.anyIPv4, port ?? 0);
+      // Listen for incoming connections from clients and handle errors
+      _server?.listen(
+        _handleClient,
+        onError: (error) => _onServerError.add(error.toString()),
+      );
+    } catch (e) {
+      // Server could not be started. Add the error to the stream
+      _onServerError.add(e.toString());
+    }
+  }
 
-        // Add the current socket to the list of sockets
-        _clients.add(client);
+  void _handleClient(Socket client) {
+    // New client connected. Save the socket to be used in [onDone]
+    Socket doneClient = client;
 
-        // New incoming connection from a client
-        // Pass the client socket to the callback
-        if (onNewClient != null) onNewClient(client);
+    // Add the current socket to the list of clients sockets and pass it to the stream
+    _clients.add(client);
+    _onNewClient.add(client);
 
-        // Listen for each client's socket
-        client.listen(
-          (data) {
-            // The client sent data
-            // Data received by client
-            final response = String.fromCharCodes(data);
-            // Pass the response to the callback along with client socket
-            if (onClientData != null) onClientData(client, response);
-          },
-          onError: (error) {
-            // The client had errors
-            // Pass the error to the callback along with client socket
-            if (onClientError != null) onClientError(client, error.toString());
-            // Close the client connection
-            client.close();
-            _clients.remove(client);
-          },
-          onDone: () {
-            // The client has closed the connection
-            // Pass the saved client to the callback
-            if (onClientLeft != null) onClientLeft(doneClient);
-            // Make sure the client closed the connection
-            client.close();
-            _clients.remove(client);
-          },
-        );
+    // Listen for each client's socket
+    client.listen(
+      (data) {
+        // Add the data received by the client to the stream along with the socket itself
+        _onClientData.add((client: client, data: data));
       },
       onError: (error) {
-        if (onServerError != null) onServerError(error.toString());
+        // Add the client and the error to the stream
+        _onClientError.add((client: client, error: error.toString()));
+        // Destroy the client connection and remove it from the list
+        client.destroy();
+        _clients.remove(client);
       },
-      onDone: () {},
+      onDone: () {
+        // The client has closed the connection. Notify the stream
+        _onClientLeft.add((client: doneClient));
+        // Make sure the client closed the connection and remove from the list
+        client.destroy();
+        _clients.remove(client);
+      },
     );
-
-    return true;
   }
 
   /// Stops the server after destroying all sockets.
-  void stop() {
-    for (var client in _clients) {
-      client.destroy();
-    }
+  ///
+  /// Throws a [SocketException] if the server is already stopped.
+  Future<void> stop() async {
+    // Check if the server is already running
+    if (_server == null) throw const SocketException("Server is already stopped");
+
+    // Destroy all client sockets
+    _clients.forEach((client) => client.destroy());
 
     // Clear the list of clients
     _clients.clear();
 
     // Close the socket
-    _server?.close();
+    await _server!.close();
+    _server = null;
   }
 
-  /// Broadcast a message to all clients.
-  void broadcast(String message) {
-    for (var client in _clients) {
-      client.write(message);
+  /// Broadcast data to all clients.
+  ///
+  /// Throws a [SocketException] if the server is not running.
+  void broadcast(Uint8List data) {
+    // Check if the server is stopped
+    if (_server == null) throw const SocketException("Server is not running");
+
+    // Send the data to all clients
+    _clients.forEach((client) => client.write(data));
+  }
+
+  /// Send data to a specific client using its port.
+  ///
+  /// Throws a [SocketException] if the server is not running or if the port is not found.
+  void sendTo(int port, Uint8List data) {
+    // Check if the server is stopped
+    if (_server == null) throw const SocketException("Server is not running");
+
+    // Send the data to the specific client
+    // Shouldn't throw as port is in list but just in case
+    try {
+      Socket client = _clients.singleWhere((element) => element.remotePort == port);
+      client.write(data);
+    } catch (e) {
+      throw SocketException("Client with port $port not found");
     }
-  }
-
-  /// Send a message to a specific client using its port.
-  void sendTo(int port, String message) {
-    Socket client =
-        _clients.singleWhere((element) => element.remotePort == port);
-    client.write(message);
   }
 }
