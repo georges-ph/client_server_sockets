@@ -24,7 +24,7 @@ class Server {
   final _onNewClient = StreamController<Socket>.broadcast();
   final _onClientData = StreamController<({Socket client, Uint8List data})>.broadcast();
   final _onClientError = StreamController<({Socket client, String error})>.broadcast();
-  final _onClientLeft = StreamController<({Socket client})>.broadcast();
+  final _onClientLeft = StreamController<Socket>.broadcast();
 
   /// Errors thrown by the server will use this stream.
   Stream<String> get onServerError => _onServerError.stream;
@@ -39,7 +39,7 @@ class Server {
   Stream<({Socket client, String error})> get onClientError => _onClientError.stream;
 
   /// To know when a client closed the connection, use this stream.
-  Stream<({Socket client})> get onClientLeft => _onClientLeft.stream;
+  Stream<Socket> get onClientLeft => _onClientLeft.stream;
 
   /// Starts the server socket on the local address.
   ///
@@ -56,7 +56,7 @@ class Server {
     try {
       _server = await ServerSocket.bind(InternetAddress.anyIPv4, port ?? 0);
       // Listen for incoming connections from clients and handle errors
-      _server?.listen(
+      _server!.listen(
         _handleClient,
         onError: (error) => _onServerError.add(error.toString()),
       );
@@ -89,7 +89,7 @@ class Server {
       },
       onDone: () {
         // The client has closed the connection. Notify the stream
-        _onClientLeft.add((client: doneClient));
+        _onClientLeft.add(doneClient);
         // Make sure the client closed the connection and remove from the list
         client.destroy();
         _clients.remove(client);
