@@ -37,7 +37,7 @@ void _server() async {
   });
 
   Server.instance.onClientLeft.listen((client) {
-    print("Client ${client.remotePort} left");
+    print("Client ${client.port} left");
   });
 
   try {

@@ -1,3 +1,7 @@
+## 1.1.2
+
+- Fixed accessing properties of a closed socket
+
 ## 1.1.1
 
 **Breaking changes**
