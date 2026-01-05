@@ -37,7 +37,7 @@ void _server() async {
   });
 
   Server.instance.onClientLeft.listen((client) {
-    print("Client ${client.remotePort} left");
+    print("Client ${client.port} left");
   });
 
   try {
@@ -77,7 +77,7 @@ void _client([bool prompt = false]) async {
   });
 
   try {
-    await Client.instance.connect("192.168.1.10", 8080);
+    await Client.instance.connect("192.168.1.12", 8080);
     print("Connected to server!");
     if (prompt) _prompts();
   } catch (e) {

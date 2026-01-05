@@ -23,7 +23,7 @@ class Server {
   final _onNewClient = StreamController<Socket>.broadcast();
   final _onClientData = StreamController<({Socket client, String data})>.broadcast();
   final _onClientError = StreamController<({Socket client, String error})>.broadcast();
-  final _onClientLeft = StreamController<Socket>.broadcast();
+  final _onClientLeft = StreamController<({String address, int port})>.broadcast();
 
   /// Errors thrown by the server will use this stream.
   Stream<String> get onServerError => _onServerError.stream;
@@ -38,7 +38,7 @@ class Server {
   Stream<({Socket client, String error})> get onClientError => _onClientError.stream;
 
   /// To know when a client closed the connection, use this stream.
-  Stream<Socket> get onClientLeft => _onClientLeft.stream;
+  Stream<({String address, int port})> get onClientLeft => _onClientLeft.stream;
 
   /// Starts the server socket on the local address.
   ///
@@ -88,7 +88,7 @@ class Server {
       },
       onDone: () {
         // The client has closed the connection. Notify the stream
-        _onClientLeft.add(doneClient);
+        _onClientLeft.add((address: doneClient.remoteAddress.address, port: doneClient.remotePort));
         // Make sure the client closed the connection and remove from the list
         client.destroy();
         _clients.remove(client);
