@@ -1,6 +1,6 @@
 name: client_server_sockets
-description: A simple client-server sockets package that uses the Socket and ServerSocket classes.
-version: 1.1.0
+description: A simple client-server sockets wrapper package around the Socket and the ServerSocket classes.
+version: 1.1.1
 repository: https://github.com/georges-ph/client_server_sockets
 issue_tracker: https://github.com/georges-ph/client_server_sockets/issues
 

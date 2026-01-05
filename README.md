@@ -1,4 +1,4 @@
-A simple client-server sockets package that uses the Socket and ServerSocket classes.
+A simple client-server sockets wrapper package around the Socket and the ServerSocket classes.
 
 ## Usage
 
@@ -7,9 +7,9 @@ Start the server using:
 Server.instance.start();
 ```
 
-Connect the client to the server using its address:
+Connect the client to the server using its address and port:
 ```dart
-Client.instance.connect("192.168.1.10");
+Client.instance.connect(serverIp, serverPort);
 ```
 
 To send a message to the server, use the `send()` function like this:
