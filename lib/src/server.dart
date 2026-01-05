@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 class Server {
   /// Server singleton; single instance.
@@ -22,7 +21,7 @@ class Server {
   // Stream controllers for events
   final _onServerError = StreamController<String>.broadcast();
   final _onNewClient = StreamController<Socket>.broadcast();
-  final _onClientData = StreamController<({Socket client, Uint8List data})>.broadcast();
+  final _onClientData = StreamController<({Socket client, String data})>.broadcast();
   final _onClientError = StreamController<({Socket client, String error})>.broadcast();
   final _onClientLeft = StreamController<Socket>.broadcast();
 
@@ -33,7 +32,7 @@ class Server {
   Stream<Socket> get onNewClient => _onNewClient.stream;
 
   /// Data received by a client is passed to this stream.
-  Stream<({Socket client, Uint8List data})> get onClientData => _onClientData.stream;
+  Stream<({Socket client, String data})> get onClientData => _onClientData.stream;
 
   /// Errors by a client are passed to this stream.
   Stream<({Socket client, String error})> get onClientError => _onClientError.stream;
@@ -78,7 +77,7 @@ class Server {
     client.listen(
       (data) {
         // Add the data received by the client to the stream along with the socket itself
-        _onClientData.add((client: client, data: data));
+        _onClientData.add((client: client, data: String.fromCharCodes(data)));
       },
       onError: (error) {
         // Add the client and the error to the stream
@@ -118,7 +117,7 @@ class Server {
   /// Broadcast data to all clients.
   ///
   /// Throws a [SocketException] if the server is not running.
-  void broadcast(Uint8List data) {
+  void broadcast(String data) {
     // Check if the server is stopped
     if (_server == null) throw const SocketException("Server is not running");
 
@@ -129,7 +128,7 @@ class Server {
   /// Send data to a specific client using its port.
   ///
   /// Throws a [SocketException] if the server is not running or if the port is not found.
-  void sendTo(int port, Uint8List data) {
+  void sendTo(int port, String data) {
     // Check if the server is stopped
     if (_server == null) throw const SocketException("Server is not running");
 

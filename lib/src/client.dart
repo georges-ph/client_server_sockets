@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 class Client {
   /// Client singleton; single instance.
@@ -15,7 +14,7 @@ class Client {
 
   // Stream controllers for events
   final _onClientError = StreamController<String>.broadcast();
-  final _onServerData = StreamController<Uint8List>.broadcast();
+  final _onServerData = StreamController<String>.broadcast();
   final _onServerError = StreamController<String>.broadcast();
   final _onServerStopped = StreamController<void>.broadcast();
 
@@ -23,7 +22,7 @@ class Client {
   Stream<String> get onClientError => _onClientError.stream;
 
   /// Data received by the server will use this stream.
-  Stream<Uint8List> get onServerData => _onServerData.stream;
+  Stream<String> get onServerData => _onServerData.stream;
 
   /// Errors by the server are passed to this stream.
   Stream<String> get onServerError => _onServerError.stream;
@@ -47,7 +46,7 @@ class Client {
       _client!.listen(
         (data) {
           // Data received from the server. Add it to the stream
-          _onServerData.add(data);
+          _onServerData.add(String.fromCharCodes(data));
         },
         onError: (error) {
           // The sever had errors. Add the error to the stream
@@ -84,7 +83,7 @@ class Client {
   /// Sends data to the server.
   ///
   /// Throws a [SocketException] if the client is not connected.
-  void send(Uint8List data) {
+  void send(String data) {
     // Check if the client is connected
     if (_client == null) throw const SocketException("Client is not connected");
     // Send the data to the server
