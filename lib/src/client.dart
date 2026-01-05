@@ -65,8 +65,8 @@ class Client {
         },
       );
     } catch (e) {
-      // Client couldn't connect to server. Add the error to the stream
-      _onClientError.add(e.toString());
+      // Client couldn't connect to server. Rethrow the exception
+      rethrow;
     }
   }
 

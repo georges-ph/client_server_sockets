@@ -61,8 +61,8 @@ class Server {
         onError: (error) => _onServerError.add(error.toString()),
       );
     } catch (e) {
-      // Server could not be started. Add the error to the stream
-      _onServerError.add(e.toString());
+      // Server could not be started. Rethrow the exception
+      rethrow;
     }
   }
 
