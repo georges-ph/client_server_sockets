@@ -1,3 +1,13 @@
+## 2.0.0
+
+**Breaking changes**
+
+- Rebuilt on WebSocket (`package:web_socket_channel`) instead of raw `dart:io` `Socket`/`ServerSocket`. `SocketClient` now runs on every platform, including web — raw TCP sockets can never work in a browser.
+- `SocketServer` remains native-only (a browser page cannot accept incoming connections), but the package now compiles cleanly when imported from a web app.
+- Replaced the global singletons `Client.instance`/`Server.instance` with instantiable classes `SocketClient()`/`SocketServer()`, so an app can run more than one of each.
+- Clients are now identified by a server-assigned `int clientId` instead of a raw `Socket`/remote port. `Payload.port` is now `Payload.clientId`.
+- Replaced `dart:io`'s `SocketException` with a new `SocketStateException` for invalid-state errors (not available on web, and not really the right fit for app-level state errors).
+
 ## 1.1.2
 
 - Fixed accessing properties of a closed socket

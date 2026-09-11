@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>client_server_sockets — web client example</title>
+    <style>
+      body { font-family: sans-serif; max-width: 480px; margin: 2em auto; }
+      #log { white-space: pre-wrap; font-family: monospace; border: 1px solid #ccc; padding: 0.5em; height: 200px; overflow-y: auto; margin-top: 1em; }
+      input { padding: 0.3em; }
+    </style>
+  </head>
+  <body>
+    <h2>client_server_sockets — web client example</h2>
+    <p>
+      Start the native server first:<br />
+      <code>dart run example/main.dart s</code>
+    </p>
+    <div>
+      <label>Host: <input id="host" value="localhost" /></label>
+      <label>Port: <input id="port" value="8080" size="6" /></label>
+      <button id="connect">Connect</button>
+    </div>
+    <div style="margin-top: 0.5em">
+      <input id="message" placeholder="Message" />
+      <button id="send" disabled>Send</button>
+    </div>
+    <div id="log"></div>
+    <script defer src="main.dart.js"></script>
+  </body>
+</html>

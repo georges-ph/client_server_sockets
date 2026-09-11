@@ -1,107 +1,120 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:client_server_sockets/client_server_sockets.dart';
+
+const _port = 8080;
 
 void main(List<String> args) {
   if (args.isEmpty) {
     print("No args passed");
     print("\nUsage:");
     print("Server: dart example/main.dart s");
-    print("Client: dart example/main.dart c");
-    print("Client with prompt: dart example/main.dart cp");
-    print("\nStart the server in a terminal, and in a second terminal start the client. Then start in a third terminal another client with prompt to send messages to the first client.");
+    print("Client: dart example/main.dart c [host]");
+    print("Client with prompt: dart example/main.dart cp [host]");
+    print(
+      "\nStart the server in a terminal, then in a second terminal start a "
+      "client. Start a third terminal with 'cp' to send messages to a "
+      "specific client by id.\n"
+      "[host] defaults to localhost; pass a LAN IP to connect from another "
+      "device. See example/web for a browser client.",
+    );
     return;
   }
   if (args.first == "s") _server();
-  if (args.first == "c") _client();
-  if (args.first == "cp") _client(true);
+  if (args.first == "c") _client(args.length > 1 ? args[1] : "localhost");
+  if (args.first == "cp") {
+    _client(args.length > 1 ? args[1] : "localhost", true);
+  }
 }
 
 void _server() async {
-  Server.instance.onServerError.listen((error) {
+  final server = SocketServer();
+
+  server.onServerError.listen((error) {
     print("Server error: $error");
   });
 
-  Server.instance.onNewClient.listen((client) {
-    print("New client: ${client.remotePort}");
+  server.onNewClient.listen((clientId) {
+    print("New client: $clientId");
   });
 
-  Server.instance.onClientData.listen((event) {
+  server.onClientData.listen((event) {
     Payload payload = Payload.fromJson(event.data);
-    print("Message from client ${event.client.remotePort}: $payload");
-    Server.instance.sendTo(payload.port, payload.data);
+    print("Message from client ${event.clientId}: $payload");
+    server.sendTo(payload.clientId, payload.data);
   });
 
-  Server.instance.onClientError.listen((event) {
-    print("Error from client ${event.client.remotePort}: ${event.error}");
+  server.onClientError.listen((event) {
+    print("Error from client ${event.clientId}: ${event.error}");
   });
 
-  Server.instance.onClientLeft.listen((client) {
-    print("Client ${client.port} left");
+  server.onClientLeft.listen((clientId) {
+    print("Client $clientId left");
   });
 
   try {
-    await Server.instance.start(8080);
-    print("Server running on ${Server.instance.port}");
+    await server.start(_port);
+    print("Server running on ${server.port}");
   } catch (e) {
     print("Couldn't start server: $e");
     return;
   }
-
-  Future.delayed(const Duration(seconds: 10), () {
-    String? message;
-    do {
-      print("Enter message to broadcast:");
-      message = stdin.readLineSync();
-    } while (message == null || message.isEmpty);
-
-    Server.instance.broadcast(message);
+  print("Enter a message and press enter to broadcast it to all clients.");
+  // stdin.readLineSync() would block Dart's single event loop while waiting
+  // for input, freezing the server (no new connections, no message delivery)
+  // until a line is entered. Read it as a stream instead so the server stays
+  // responsive at all times.
+  stdin.transform(utf8.decoder).transform(const LineSplitter()).listen((
+    message,
+  ) {
+    if (message.isEmpty) return;
+    server.broadcast(message);
   });
 }
 
-void _client([bool prompt = false]) async {
-  Client.instance.onClientError.listen((error) {
+void _client(String host, [bool prompt = false]) async {
+  final client = SocketClient();
+
+  client.onError.listen((error) {
     print("Client error: $error");
   });
 
-  Client.instance.onServerData.listen((data) {
+  client.onData.listen((data) {
     print("Message from server: $data");
   });
 
-  Client.instance.onServerError.listen((error) {
-    print("Error from server: $error");
-  });
-
-  Client.instance.onServerStopped.listen((_) {
+  client.onDone.listen((_) {
     print("Server stopped");
   });
 
   try {
-    await Client.instance.connect("192.168.1.10", 8080);
-    print("Connected to server!");
-    if (prompt) _prompts();
+    await client.connect(host, _port);
+    print("Connected to server at $host:$_port!");
   } catch (e) {
     print("Couldn't connect to server: $e");
     return;
   }
-}
 
-void _prompts() {
-  Future.delayed(const Duration(seconds: 10), () {
-    String? port;
-    do {
-      print("Enter client port you wish to send a message to:");
-      port = stdin.readLineSync();
-    } while (port == null || port.isEmpty);
+  if (prompt) {
+    print("Enter '<clientId> <message>' and press enter to send it.");
+    stdin.transform(utf8.decoder).transform(const LineSplitter()).listen((
+      line,
+    ) {
+      final spaceIndex = line.indexOf(' ');
+      if (spaceIndex == -1) {
+        print("Expected '<clientId> <message>', got: $line");
+        return;
+      }
 
-    String? message;
-    do {
-      print("Enter message to send to client 2:");
-      message = stdin.readLineSync();
-    } while (message == null || message.isEmpty);
+      final clientId = int.tryParse(line.substring(0, spaceIndex));
+      final message = line.substring(spaceIndex + 1);
+      if (clientId == null || message.isEmpty) {
+        print("Expected '<clientId> <message>', got: $line");
+        return;
+      }
 
-    Payload payload = Payload(port: int.parse(port), data: message);
-
-    Client.instance.send(payload.toJson());
-  });
+      client.send(Payload(clientId: clientId, data: message).toJson());
+    });
+  }
 }

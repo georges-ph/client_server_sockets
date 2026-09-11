@@ -1,24 +1,24 @@
 import 'dart:convert';
 
 class Payload {
-  final int port;
+  final int clientId;
   final String data;
 
   Payload({
-    required this.port,
+    required this.clientId,
     required this.data,
   });
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
-      'port': port,
+      'clientId': clientId,
       'data': data,
     };
   }
 
   factory Payload.fromMap(Map<String, dynamic> map) {
     return Payload(
-      port: map['port'] as int,
+      clientId: map['clientId'] as int,
       data: map['data'] as String,
     );
   }
@@ -29,5 +29,5 @@ class Payload {
       Payload.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
-  String toString() => 'Payload(port: $port, data: $data)';
+  String toString() => 'Payload(clientId: $clientId, data: $data)';
 }

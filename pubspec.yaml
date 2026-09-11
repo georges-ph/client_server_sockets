@@ -1,11 +1,14 @@
 name: client_server_sockets
-description: A simple client-server sockets wrapper package around the Socket and the ServerSocket classes.
-version: 1.1.2
+description: A simple WebSocket-based client-server package that works on every platform, including web.
+version: 2.0.0
 repository: https://github.com/georges-ph/client_server_sockets
 issue_tracker: https://github.com/georges-ph/client_server_sockets/issues
 
 environment:
   sdk: ^3.10.4
+
+dependencies:
+  web_socket_channel: ^3.0.3
 
 dev_dependencies:
   lints: ^3.0.0
