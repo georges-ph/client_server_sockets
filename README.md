@@ -1,3 +1,7 @@
+[![CI](https://github.com/georges-ph/client_server_sockets/actions/workflows/ci.yml/badge.svg)](https://github.com/georges-ph/client_server_sockets/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/georges-ph/client_server_sockets)](https://github.com/georges-ph/client_server_sockets/releases)
+[![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
+
 A simple WebSocket-based client-server package that works on every platform, including web.
 
 `SocketClient` runs anywhere Dart/Flutter runs — native and web — since it's built on WebSocket rather than raw TCP sockets (which browsers can't open). `SocketServer` runs on native platforms only, since a browser page can never accept incoming connections.

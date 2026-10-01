@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use, dart:html kept for a minimal example without a build step
 import 'dart:html';
 
 import 'package:client_server_sockets/client_server_sockets.dart';

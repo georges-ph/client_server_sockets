@@ -1,0 +1,7 @@
+formatter:
+  trailing_commas: preserve
+
+linter:
+  rules:
+    - prefer_const_constructors
+    - prefer_relative_imports

@@ -1,4 +1,4 @@
-## 2.0.0
+## [2.0.0] - 2026-09-11
 
 **Breaking changes**
 
@@ -8,11 +8,11 @@
 - Clients are now identified by a server-assigned `int clientId` instead of a raw `Socket`/remote port. `Payload.port` is now `Payload.clientId`.
 - Replaced `dart:io`'s `SocketException` with a new `SocketStateException` for invalid-state errors (not available on web, and not really the right fit for app-level state errors).
 
-## 1.1.2
+## [1.1.2] - 2026-01-05
 
 - Fixed accessing properties of a closed socket
 
-## 1.1.1
+## [1.1.1] - 2026-01-05
 
 **Breaking changes**
 
@@ -22,22 +22,22 @@
 - Replaced the default server port with a random port chosen by the system
 - Removed `remotePort` in `Client` class as it's already known when connecting to the server
 
-## 1.0.1
+## [1.0.1] - 2023-11-25
 
 - Exported `payload` file to the package
 
-## 1.0.0
+## [1.0.0] - 2023-11-25
 
 ### Breaking change
 
 - Re-written package from scratch. 
 - New package, new usage, new example
 
-## 0.0.2
+## [0.0.2] - 2022-10-16
 
 - Changed example file to `main.dart` so the *Example* tab shows up
 - Removed `Getting Started` section from *README*
 
-## 0.0.1
+## [0.0.1] - 2022-10-16
 
 - Initial version.
