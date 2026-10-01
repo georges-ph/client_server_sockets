@@ -41,9 +41,10 @@ void main() {
 
   test('server sendTo and broadcast deliver to the client', () async {
     await server.start();
+    final newClientFuture = server.onNewClient.first;
     final client = SocketClient();
     await client.connect('localhost', server.port!);
-    final clientId = await server.onNewClient.first;
+    final clientId = await newClientFuture;
 
     final firstMessage = client.onData.first;
     server.sendTo(clientId, 'direct message');
@@ -58,9 +59,10 @@ void main() {
 
   test('server.onClientLeft fires when the client disconnects', () async {
     await server.start();
+    final newClientFuture = server.onNewClient.first;
     final client = SocketClient();
     await client.connect('localhost', server.port!);
-    final clientId = await server.onNewClient.first;
+    final clientId = await newClientFuture;
 
     final leftFuture = server.onClientLeft.first;
     await client.disconnect();
